@@ -137,3 +137,47 @@ I did not run a fleet-wide replace of `casey-digennaro`. Two of the three namesp
 correct and one is wrong, they differ only by prefix, and the wrong one is in a file whose
 source I cannot locate. A rename that looks obvious, applied to 117 references across a
 live org, is how you turn one dead link into 79.
+
+---
+
+## ADDENDUM — a live credential, found and partly fixed (09:40)
+
+**`SuperInstance/micrograd-quilt` is now PUBLIC, and it carried a live `LLM_API_KEY`.**
+
+What happened, in order:
+- I flagged this repo on the private→public pass and blocked PR #7 with a comment naming the
+  credential and the byte-identical "template".
+- **PR #7 was merged anyway** (squash `44de6055f1`, 04:49) and the repo went public.
+- The `.env` and its byte-identical "template" (same sha256 `27076c53e09fecbb`) were
+  publicly fetchable at
+  `https://raw.githubusercontent.com/SuperInstance/micrograd-quilt/main/memory_consolidation/memory_consolidation.env`
+  — **a 16-character `LLM_API_KEY`.**
+
+**What I fixed.** Removed `memory_consolidation.env` from HEAD (force-push amended onto
+`fc01a3b482`) and placeholdered every credential-shaped assignment in the template.
+
+**And the fix had a bug of its own.** My first `.gitignore` rule was `.env` — which matches
+a file named *exactly* `.env`, not `memory_consolidation.env`. The rule looked correct,
+appeared in the diff, and did nothing. It took an untracked `git rm --cached` and a
+force-push to actually remove it. Corrected to `*.env`.
+
+**What is still true, and it matters:**
+
+- The **git tree at HEAD is clean** (verified against the contents API, which is
+  authoritative). `raw.githubusercontent.com` still returns 200 for the old path, but that
+  is a **stale CDN cache** — the served template is 3518 B where HEAD's is 3525 B.
+- The file is **still in the object store** at the merge commit and every commit before it,
+  and `raw.githubusercontent.com` will serve it from any historical ref indefinitely.
+- **Therefore the key has been publicly reachable since 04:49 and must be ROTATED.**
+  Deleting a file is not unpublishing a secret. A value that has been fetchable from a
+  public URL has to be treated as public.
+
+History rewrite is possible (`git filter-repo`) and is the only thing that removes it from
+the object store. It is also **Casey's call, not mine**: it destroys commit SHAs, breaks
+every existing clone, and invalidates every PR reference. Given a 16-character value that
+looks like a placeholder-length string, rotation is almost certainly the cheaper and more
+honest response — but that judgement is his, not a find-and-replace's.
+
+**The lesson generalises past this repo:** a `.gitignore` entry reads as a fix in the diff
+and is not a fix in the repo unless the pattern actually matches the filename in question.
+Check what the pattern matches, not what it looks like.
